@@ -1,15 +1,18 @@
 package nuvemshop
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"net/url"
 )
 
 type Client struct {
-	BaseURL   string
+	BaseURL   *url.URL
 	apiKey    string
 	UserAgent string
 }
@@ -19,7 +22,7 @@ type errorResponse struct {
 	Message string `json:"message"`
 }
 
-func NewClient(baseUrl string, apiKey string, userAgent string) *Client {
+func NewClient(baseUrl *url.URL, apiKey string, userAgent string) *Client {
 	return &Client{
 		BaseURL:   baseUrl,
 		apiKey:    apiKey,
@@ -56,7 +59,7 @@ func (c *Client) sendRequest(req *http.Request, v interface{}) error {
 	return nil
 }
 
-func (c *Client) GetProducts(ctx context.Context, options *ProductsListOptions) ([]Product, error) {
+func (c *Client) GetProducts(ctx *context.Context, options *ProductsListOptions) ([]Product, error) {
 	page := 1
 	per_page := 100
 	if options != nil {
@@ -64,7 +67,7 @@ func (c *Client) GetProducts(ctx context.Context, options *ProductsListOptions) 
 		per_page = options.Per_page
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/products?page=%d&per_page=%d", c.BaseURL, page, per_page), nil)
+	req, err := http.NewRequestWithContext(*ctx, "GET", fmt.Sprintf("%s/products?page=%d&per_page=%d", c.BaseURL, page, per_page), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -73,6 +76,38 @@ func (c *Client) GetProducts(ctx context.Context, options *ProductsListOptions) 
 	if err := c.sendRequest(req, &res); err != nil {
 		return nil, err
 	}
+
+	return res, nil
+}
+
+func (c *Client) UpdateProductStock(ctx *context.Context, productsUpdateStockPrice []ProductsUpdateStockPrice) ([]ProductsUpdateStockPriceResponse, error) {
+
+	out, err := json.Marshal(productsUpdateStockPrice)
+	if err != nil {
+		log.Println("Error marshaling content:", err)
+		return nil, err
+	}
+
+	log.Println("Request JSON:", string(out))
+
+	req, err := http.NewRequestWithContext(*ctx, "PATCH", fmt.Sprintf("%s/products/stock-price", c.BaseURL), bytes.NewBuffer(out))
+	if err != nil {
+		log.Println("Error creating request:", err)
+		return nil, err
+	}
+
+	var res []ProductsUpdateStockPriceResponse
+	if err := c.sendRequest(req, &res); err != nil {
+		log.Println("Error sending request:", err)
+		return nil, err
+	}
+
+	resout, err := json.Marshal(res)
+	if err != nil {
+		log.Println("Error marshalling content:", err)
+		return nil, err
+	}
+	log.Println("Response JSON:", string(resout))
 
 	return res, nil
 }
