@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"path"
 	"strconv"
 	"time"
@@ -15,6 +16,10 @@ import (
 )
 
 func main() {
+
+	logFile := initLoggingToFile()
+	defer logFile.Close()
+
 	config, _ := configs.LoadConfig(".")
 
 	ctx := context.Background()
@@ -30,6 +35,22 @@ func main() {
 	client := nuvemshop.NewClient(baseUrl, config.NuvemshopAPIToken, config.NuvemshopUserAgent)
 
 	updateProducts(&ctx, client)
+}
+
+func initLoggingToFile() *os.File {
+	fileName := "logFile.log"
+
+	logFile, err := os.OpenFile(fileName, os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	log.SetOutput(logFile)
+
+	// log date-time, filename, and line number
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+
+	return logFile
 }
 
 func updateProducts(ctx *context.Context, client *nuvemshop.Client) {
@@ -52,6 +73,10 @@ func updateProducts(ctx *context.Context, client *nuvemshop.Client) {
 
 			variantsUpdateStockPrice = verifyVariantToUpdateStockPrice(variant, variantsUpdateStockPrice)
 
+			if len(variantsUpdateStockPrice) == 0 {
+				continue
+			}
+
 			productUpdateStockPrice := nuvemshop.ProductsUpdateStockPrice{
 				ID:       product.ID,
 				Variants: variantsUpdateStockPrice,
@@ -61,12 +86,13 @@ func updateProducts(ctx *context.Context, client *nuvemshop.Client) {
 		}
 	}
 
-	log.Println("Products to update")
-	log.Println(productsUpdateStockPrice)
-
 	if len(productsUpdateStockPrice) == 0 {
+		log.Println("No products to update")
 		return
 	}
+
+	log.Println("Products to update")
+	log.Println(productsUpdateStockPrice)
 
 	updateProductsInNuvemshop(ctx, client, productsUpdateStockPrice)
 }
