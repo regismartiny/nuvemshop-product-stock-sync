@@ -15,6 +15,10 @@ import (
 	"github.com/regismartiny/nuvemshop-product-stock-sync/internal/nuvemshop"
 )
 
+var (
+	LOG_FILE_NAME = "logFile.log"
+)
+
 func main() {
 
 	logFile := initLoggingToFile()
@@ -38,9 +42,8 @@ func main() {
 }
 
 func initLoggingToFile() *os.File {
-	fileName := "logFile.log"
 
-	logFile, err := os.OpenFile(fileName, os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
+	logFile, err := os.OpenFile(LOG_FILE_NAME, os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		log.Panic(err)
 	}

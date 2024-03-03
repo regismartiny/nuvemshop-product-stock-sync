@@ -11,6 +11,10 @@ import (
 	"net/url"
 )
 
+var (
+	APPLICATION_JSON_UTF8 = "application/json; charset=utf-8"
+)
+
 type Client struct {
 	BaseURL   *url.URL
 	apiKey    string
@@ -31,8 +35,8 @@ func NewClient(baseUrl *url.URL, apiKey string, userAgent string) *Client {
 }
 
 func (c *Client) sendRequest(req *http.Request, v interface{}) error {
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	req.Header.Set("Accept", "application/json; charset=utf-8")
+	req.Header.Set("Content-Type", APPLICATION_JSON_UTF8)
+	req.Header.Set("Accept", APPLICATION_JSON_UTF8)
 	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("Authentication", fmt.Sprintf("bearer %s", c.apiKey))
 
